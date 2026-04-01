@@ -2,7 +2,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import type { Sequelize } from 'sequelize';
 
-// Define the attributes interface
 export interface UserAttributes {
     id: number;
     email: string;
@@ -11,19 +10,17 @@ export interface UserAttributes {
     firstName: string;
     lastName: string;
     role: string;
-    createdAt: Date;        // ✅ ADD THIS
-    updatedAt: Date;        // ✅ ADD THIS
+    verified: boolean;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
-// Define optional attributes for creation
 export interface UserCreationAttributes
-    extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+    extends Optional<UserAttributes, 'id' | 'createdAt' | 'updatedAt' | 'verified'> {}
 
-// Define the Sequelize model class
 export class User
     extends Model<UserAttributes, UserCreationAttributes>
     implements UserAttributes {
-
     public id!: number;
     public email!: string;
     public passwordHash!: string;
@@ -31,68 +28,38 @@ export class User
     public firstName!: string;
     public lastName!: string;
     public role!: string;
-    public readonly createdAt!: Date;    // ✅ ADD THIS
-    public readonly updatedAt!: Date;    // ✅ ADD THIS
+    public verified!: boolean;
+    public readonly createdAt!: Date;
+    public readonly updatedAt!: Date;
 }
 
-// Export the model initializer function
 export default function (sequelize: Sequelize): typeof User {
     User.init(
         {
-            id: {
-                type: DataTypes.INTEGER,
-                autoIncrement: true,
-                primaryKey: true,
-            },
-            email: {
-                type: DataTypes.STRING,
-                allowNull: false,
-                unique: true,
-            },
-            passwordHash: {
-                type: DataTypes.STRING,
-                allowNull: false,
-            },
-            title: {
-                type: DataTypes.STRING,
-                allowNull: false,
-            },
-            firstName: {
-                type: DataTypes.STRING,
-                allowNull: false,
-            },
-            lastName: {
-                type: DataTypes.STRING,
-                allowNull: false,
-            },
-            role: {
-                type: DataTypes.STRING,
-                allowNull: false,
-            },
-            createdAt: {
-                type: DataTypes.DATE,
-                allowNull: false,
-                defaultValue: DataTypes.NOW,
-            },
-            updatedAt: {
-                type: DataTypes.DATE,
-                allowNull: false,
-                defaultValue: DataTypes.NOW,
-            },
+            id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+            email: { type: DataTypes.STRING, allowNull: false, unique: true },
+            passwordHash: { type: DataTypes.STRING, allowNull: false },
+            title: { type: DataTypes.STRING, allowNull: false },
+            firstName: { type: DataTypes.STRING, allowNull: false },
+            lastName: { type: DataTypes.STRING, allowNull: false },
+            role: { type: DataTypes.STRING, allowNull: false },
+            verified: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+            createdAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
+            updatedAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
         },
         {
             sequelize,
             modelName: 'User',
             tableName: 'users',
-            timestamps: true, // ✅ Ensure this is true (default)
+            timestamps: true,
             defaultScope: {
-                attributes: { exclude: ['passwordHash'] },
+                attributes: { exclude: ['passwordHash'] }
             },
             scopes: {
                 withHash: {
-                    attributes: { include: ['passwordHash'] },
-                },
-            },
+                    attributes: { include: ['passwordHash'] }
+                }
+            }
         }
     );
 

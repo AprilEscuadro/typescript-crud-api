@@ -1,15 +1,19 @@
 // src/users/user.service.ts
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import config from '../../config.json';
 import { db } from '../_helpers/db';
 import { Role } from '../_helpers/role';
 import { User, UserCreationAttributes } from './user.model';
 
 export const userService = {
-    getAll,
-    getById,
-    create,
-    update,
-    delete: _delete,
+  authenticate,
+  getAll,
+  getById,
+  create,
+  update,
+  verify,
+  delete: _delete
 };
 
 async function getAll(): Promise<User[]> {
@@ -35,20 +39,22 @@ async function create(params: UserCreationAttributes & { password: string }): Pr
         ...params,
         passwordHash,
         role: params.role || Role.User, // Default to User role
+        verified: false
     } as UserCreationAttributes);
 }
 
-async function update(id: number, params: Partial<UserCreationAttributes> & { password?: string }): Promise<void> {
-    const user = await getUser(id);
+async function update(
+  id: number,
+  params: Partial<UserCreationAttributes> & { password?: string }
+): Promise<void> {
+  const user = await getUser(id);
 
-    // Hash new password if provided
-    if (params.password) {
-        (params as any).passwordHash = await bcrypt.hash(params.password, 10);
-        delete params.password; // Remove plain password
-    }
+  if (params.password) {
+    params.passwordHash = await bcrypt.hash(params.password, 10);
+    delete params.password;
+  }
 
-    // Update user
-    await user.update(params as Partial<UserCreationAttributes>);
+  await user.update(params as Partial<UserCreationAttributes>);
 }
 
 async function _delete(id: number): Promise<void> {
@@ -63,4 +69,31 @@ async function getUser(id: number): Promise<User> {
         throw new Error('User not found');
     }
     return user;
+}
+
+async function authenticate(email: string, password: string): Promise<object> {
+  const user = await db.User.scope('withHash').findOne({ where: { email } });
+  
+  if (!user) throw new Error('Email or password is incorrect');
+  
+  const isMatch = await bcrypt.compare(password, user.passwordHash);
+  if (!isMatch) throw new Error('Email or password is incorrect');
+
+  if (!user.verified) throw new Error('Your account is not verified yet. Please wait for admin approval.');
+
+  const token = jwt.sign({ id: user.id }, config.jwtSecret, { expiresIn: '7d' });
+  
+  return {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role: user.role,
+    token
+  };
+}
+
+async function verify(id: number): Promise<void> {
+  const user = await getUser(id);
+  await user.update({ verified: true });
 }

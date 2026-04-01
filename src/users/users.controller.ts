@@ -9,19 +9,33 @@ import { userService } from './user.service';
 const router = Router();
 
 // 👇 ROUTES
+router.post('/authenticate', authenticate);
 router.get('/', getAll);
 router.get('/:id', getById);
 router.post('/', createSchema, create);
 router.put('/:id', updateSchema, update);
+router.put('/:id/verify', verifyAccount);
 router.delete('/:id', _delete);
 
 export default router;
+
+function verifyAccount(req: Request, res: Response, next: NextFunction): void {
+  userService.verify(Number(req.params.id))
+    .then(() => res.json({ message: 'Account verified' }))
+    .catch(next);
+}
 
 // 👇 ROUTE HANDLERS (typed)
 function getAll(req: Request, res: Response, next: NextFunction): void {
     userService.getAll()
         .then((users) => res.json(users))
         .catch(next);
+}
+
+function authenticate(req: Request, res: Response, next: NextFunction): void {
+  userService.authenticate(req.body.email, req.body.password)
+    .then((user) => res.json(user))
+    .catch(next);
 }
 
 function getById(req: Request, res: Response, next: NextFunction): void {
